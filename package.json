@@ -7,9 +7,6 @@
     "test:search": "k6 run scripts/search_test.js",
     "test:purchase": "k6 run scripts/purchase_test.js"
   },
-  "devDependencies": {
-    "k6": "^0.49.0"
-  },
   "keywords": [
     "performance",
     "k6",
