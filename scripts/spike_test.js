@@ -8,8 +8,8 @@ import { check, sleep } from "k6";
 export let options = {
   stages: [
     { duration: "30s", target: 0 }, // Início gradual
-    { duration: "1m", target: 500 }, // Pico súbito de 500 VUs
-    { duration: "2m", target: 500 }, // Mantém o pico
+    { duration: "1m", target: 2500 }, // Pico súbito de 250 VUs
+    { duration: "2m", target: 250 }, // Mantém o pico
     { duration: "1m", target: 0 }, // Descida gradual para 0 VUs
   ],
   thresholds: {
