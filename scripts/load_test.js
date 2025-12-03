@@ -1,48 +1,61 @@
 // path: scripts/load_test.js
-// Script de teste de carga para o site BlazeDemo
+// Script de teste de carga (load test) para o site BlazeDemo
+// Objetivo: simular 250 usuários simultâneos e validar performance e erros
 
-import http from "k6/http"; // Importa módulo HTTP do K6 para requisições
-import { check, sleep } from "k6"; // check valida respostas HTTP, sleep adiciona pausas
+import http from "k6/http"; // Módulo para fazer requisições HTTP
+import { check, sleep } from "k6"; // check valida respostas, sleep adiciona pausa
+import { Rate } from "k6/metrics"; // Para medir taxa de erros
+import { randomName, randomCreditCard } from "../utils/helpers.js"; // Funções utilitárias
 
-// Configuração do teste de carga
+// Criação da métrica personalizada para erros
+export let errorRate = new Rate("errors");
+
+// Configuração do teste
 export let options = {
   stages: [
-    { duration: "2m", target: 250 }, // Gradualmente sobe para 250 VUs
-    { duration: "3m", target: 250 }, // Mantém 250 VUs por 3 minutos
-    { duration: "2m", target: 0 }, // Desce para 0 VUs no final
+    { duration: "1m", target: 100 }, // Aquecimento gradual
+    { duration: "3m", target: 250 }, // Pico para atender critério 250 VUs
+    { duration: "2m", target: 250 }, // Mantém a carga
+    { duration: "1m", target: 0 }, // Desaceleração
   ],
   thresholds: {
-    http_req_duration: ["p(90)<2000"], // 90º percentil deve ser < 2 segundos
+    http_req_duration: ["p(90)<2000"], // 90º percentil < 2 segundos
+    errors: ["rate<0.01"], // Máximo de 1% de erros
   },
 };
 
 // Função principal executada por cada VU
 export default function () {
-  // Página inicial
+  // 1) Página inicial
   let resHome = http.get("https://www.blazedemo.com");
-  check(resHome, { "home page ok": (r) => r.status === 200 });
+  check(resHome, { "Home status 200": (r) => r.status === 200 }) ||
+    errorRate.add(1);
 
-  // Seleção de voo
-  let resReserve = http.post("https://www.blazedemo.com/reserve.php", {
+  // 2) Seleção do voo
+  let resSearch = http.post("https://www.blazedemo.com/reserve.php", {
     fromPort: "Boston",
     toPort: "New York",
   });
-  check(resReserve, { "reserve page ok": (r) => r.status === 200 });
+  check(resSearch, { "Search status 200": (r) => r.status === 200 }) ||
+    errorRate.add(1);
 
-  // Compra de passagem
+  // 3) Compra da passagem
   let resPurchase = http.post("https://www.blazedemo.com/purchase.php", {
-    inputName: "Adelia Test",
+    name: randomName(), // Nome aleatório
     address: "Rua Exemplo, 123",
-    city: "São Paulo",
-    state: "SP",
-    zipCode: "01000-000",
-    cardType: "Visa",
-    creditCardNumber: "4111111111111111",
+    city: "Rio de Janeiro",
+    state: "RJ",
+    zipCode: "20000-000",
+    cardType: "visa",
+    creditCardNumber: randomCreditCard(), // Cartão de teste
     creditCardMonth: "12",
     creditCardYear: "2025",
-    nameOnCard: "Adelia Test",
+    nameOnCard: randomName(),
   });
-  check(resPurchase, { "purchase success": (r) => r.status === 200 });
+  check(resPurchase, {
+    "Purchase status 200": (r) => r.status === 200,
+    "Purchase confirmed": (r) => r.body.includes("Thank you for your purchase"),
+  }) || errorRate.add(1);
 
-  sleep(1); // Pausa de 1 segundo para simular comportamento real do usuário
+  sleep(1); // Pausa para simular tempo real entre interações
 }
