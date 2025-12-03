@@ -54,7 +54,8 @@ export default function () {
   });
   check(resPurchase, {
     "Purchase status 200": (r) => r.status === 200,
-    "Purchase confirmed": (r) => r.body.includes("Thank you for your purchase"),
+    "Purchase confirmed": (r) =>
+      r.body.includes("Thank you for your purchase today!"),
   }) || errorRate.add(1);
 
   sleep(1); // Pausa para simular tempo real entre interações

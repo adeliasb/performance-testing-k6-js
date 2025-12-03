@@ -3,13 +3,19 @@
   "version": "1.0.0",
   "description": "Teste de performance usando K6 e JavaScript para o site BlazeDemo",
   "scripts": {
-    "test:load": "k6 run scripts/load_test.js",
-    "test:spike": "k6 run scripts/spike_test.js"
+    "test:home": "k6 run scripts/home_test.js",
+    "test:search": "k6 run scripts/search_test.js",
+    "test:purchase": "k6 run scripts/purchase_test.js"
   },
   "devDependencies": {
     "k6": "^0.49.0"
   },
-  "keywords": ["performance", "k6", "javascript", "testing"],
+  "keywords": [
+    "performance",
+    "k6",
+    "javascript",
+    "testing"
+  ],
   "author": "Adélia dos Santos Barroso",
   "license": "MIT"
 }
