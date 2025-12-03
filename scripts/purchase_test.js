@@ -1,52 +1,48 @@
-// path: scripts/purchase_test.js
-// Cenário isolado testando somente a etapa de compra
-// Objetivo: medir o endpoint mais pesado do fluxo
-
 import http from "k6/http";
 import { check } from "k6";
+import { Counter } from "k6/metrics";
+
+export let errors = new Counter("errors");
 
 export let options = {
+  thresholds: {
+    http_req_duration: ["p(90)<2000"],
+    errors: ["rate<0.01"],
+  },
   scenarios: {
     purchase: {
       executor: "constant-arrival-rate",
       rate: 250,
       timeUnit: "1s",
       duration: "2m",
-      preAllocatedVUs: 150,
-      maxVUs: 300,
+      preAllocatedVUs: 80,
+      maxVUs: 250,
     },
-  },
-  thresholds: {
-    http_req_duration: ["p(90)<2000"],
-    errors: ["rate<0.01"],
   },
 };
 
 export default function () {
-  // 1. Buscar voo (pré-requisito para a compra)
-  let reservation = http.post("https://www.blazedemo.com/reserve.php", {
+  let home = http.get("https://www.blazedemo.com");
+  let homeOk = check(home, { "Home status 200": (r) => r.status === 200 });
+  if (!homeOk) errors.add(1);
+
+  let search = http.post("https://www.blazedemo.com/reserve.php", {
     fromPort: "Boston",
     toPort: "London",
   });
-  check(reservation, { "Reservation 200": (r) => r.status === 200 });
+  let searchOk = check(search, {
+    "Search status 200": (r) => r.status === 200,
+  });
+  if (!searchOk) errors.add(1);
 
-  // 2. POST da compra
   let purchase = http.post("https://www.blazedemo.com/purchase.php", {
     inputName: "Adelia",
     address: "Rua Teste",
-    city: "SP",
-    state: "SP",
+    city: "São Paulo",
     zipCode: "12345",
-    cardType: "visa",
-    creditCardNumber: "1111 2222 3333 4444",
-    creditCardMonth: "12",
-    creditCardYear: "2025",
-    nameOnCard: "Adelia QA",
   });
-
-  let ok = check(purchase, {
+  let purchaseOk = check(purchase, {
     "Purchase status 200": (r) => r.status === 200,
   });
-
-  if (!ok) errors.add(1);
+  if (!purchaseOk) errors.add(1);
 }

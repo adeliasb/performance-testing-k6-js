@@ -1,6 +1,6 @@
 // path: scripts/home_test.js
 // Cenário isolado testando somente a home do BlazeDemo
-// Objetivo: medir disponibilidade sob carga e se a home responde dentro do SLA
+// Objetivo: medir disponibilidade sob carga e verificar se a home responde dentro do SLA
 
 import http from "k6/http";
 import { check } from "k6";
@@ -18,19 +18,13 @@ export let options = {
   },
   thresholds: {
     http_req_duration: ["p(90)<2000"], // p90 < 2s
-    errors: ["rate<0.01"], // menos de 1 por cento de erros
   },
 };
 
 export default function () {
   let res = http.get("https://www.blazedemo.com");
 
-  let isOk = check(res, {
+  check(res, {
     "Home status 200": (r) => r.status === 200,
   });
-
-  if (!isOk) {
-    // métrica manual de erro para os thresholds
-    errors.add(1);
-  }
 }
