@@ -1,0 +1,58 @@
+name: Performance Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  k6-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout do código
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Instalar Node
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      # 3. Instalar dependências do projeto
+      - name: Install dependencies
+        run: npm install
+
+      # 4. Instalar K6
+      - name: Install k6
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gnupg2
+          curl -s https://dl.k6.io/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/k6.gpg
+          echo "deb [signed-by=/usr/share/keyrings/k6.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+      # 5. Executar teste Home
+      - name: Run Home Test
+        run: |
+          k6 run scripts/home_test.js --out json=reports/home.json
+
+      # 6. Executar teste Search
+      - name: Run Search Test
+        run: |
+          k6 run scripts/search_test.js --out json=reports/search.json
+
+      # 7. Executar teste Purchase
+      - name: Run Purchase Test
+        run: |
+          k6 run scripts/purchase_test.js --out json=reports/purchase.json
+
+      # 8. Publicar artefatos
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-reports
+          path: reports/
